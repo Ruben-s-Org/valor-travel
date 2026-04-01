@@ -30,5 +30,5 @@ tag = "v1"
 new_sqlite_classes = ["ValorTravelMCP"]
 
 [vars]
-AFFILIATE_MARKER = "395498"
+AFFILIATE_MARKER = "137906"
 BASE_URL = "https://mcp.valorflights.com"

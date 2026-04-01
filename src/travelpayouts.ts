@@ -5,7 +5,7 @@ const SEARCH_API_BASE = 'https://api.travelpayouts.com/v1';
 const AVIASALES_SEARCH = 'https://lyssa.aviasales.ru';
 
 function buildBookingUrl(origin: string, dest: string, departureDate: string, returnDate?: string, marker?: string): string {
-  const m = marker || '395498';
+  const m = marker || '137906';
   const dep = departureDate.replace(/-/g, '');
   let route = `${origin}${dep}${dest}`;
   if (returnDate) {
@@ -15,7 +15,7 @@ function buildBookingUrl(origin: string, dest: string, departureDate: string, re
 }
 
 export async function searchFlightsRealtime(params: FlightSearchParams, env: Env): Promise<FlightResult[]> {
-  const marker = env.AFFILIATE_MARKER || '395498';
+  const marker = env.AFFILIATE_MARKER || '137906';
   const token = env.TRAVELPAYOUTS_TOKEN;
 
   // Step 1: Start search
@@ -132,7 +132,7 @@ export async function searchFlightsRealtime(params: FlightSearchParams, env: Env
 
 async function searchFlightsDataAPI(params: FlightSearchParams, env: Env): Promise<FlightResult[]> {
   const token = env.TRAVELPAYOUTS_TOKEN;
-  const marker = env.AFFILIATE_MARKER || '395498';
+  const marker = env.AFFILIATE_MARKER || '137906';
   const currency = params.currency || 'usd';
 
   const url = `${DATA_API_BASE}/v3/prices_for_dates?origin=${params.origin}&destination=${params.destination}&departure_at=${params.departure_date}${params.return_date ? `&return_at=${params.return_date}` : ''}&currency=${currency}&sorting=price&direct=${params.max_stops === 0 ? 'true' : 'false'}&limit=15&token=${token}`;
@@ -169,7 +169,7 @@ async function searchFlightsDataAPI(params: FlightSearchParams, env: Env): Promi
 export async function searchCheapestDates(origin: string, destination: string, month?: string, env?: Env): Promise<CheapestDateResult[]> {
   if (!env) return [];
   const token = env.TRAVELPAYOUTS_TOKEN;
-  const marker = env.AFFILIATE_MARKER || '395498';
+  const marker = env.AFFILIATE_MARKER || '137906';
 
   // Use prices/cheap endpoint
   const url = `${DATA_API_BASE}/v3/prices_for_dates?origin=${origin}&destination=${destination}${month ? `&departure_at=${month}` : ''}&currency=usd&sorting=price&limit=30&token=${token}`;
@@ -194,7 +194,7 @@ export async function searchCheapestDates(origin: string, destination: string, m
 
 export async function getPriceCalendar(origin: string, destination: string, month: string, env: Env): Promise<PriceCalendarEntry[]> {
   const token = env.TRAVELPAYOUTS_TOKEN;
-  const marker = env.AFFILIATE_MARKER || '395498';
+  const marker = env.AFFILIATE_MARKER || '137906';
 
   const url = `${DATA_API_BASE}/v3/grouped_prices?origin=${origin}&destination=${destination}&departure_at=${month}&group_by=departure_at&currency=usd&sorting=price&token=${token}`;
 

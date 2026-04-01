@@ -224,7 +224,7 @@ Example: Booking link for JFK to LHR on June 15, returning June 22:
         cabin_class: z.enum(['economy', 'business', 'first']).default('economy').describe('Cabin class'),
       },
       async (params: any) => {
-        const marker = this.env.AFFILIATE_MARKER || '395498';
+        const marker = this.env.AFFILIATE_MARKER || '137906';
         const dep = params.departure_date.replace(/-/g, '');
         let route = `${params.origin}${dep}${params.destination}`;
         if (params.return_date) {
