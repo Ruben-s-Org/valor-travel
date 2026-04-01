@@ -121,51 +121,63 @@ app.get('/api/flights/search', rateLimitMiddleware, async (c) => {
     return c.json({ error: 'Missing required parameters: origin, destination, departure_date' }, 400);
   }
 
-  const cacheKey = buildCacheKey('search_flights', { origin, destination, departure_date, return_date, cabin_class, max_stops });
-  const cached = await getCached(c.env, cacheKey);
-  if (cached) return c.json({ flights: cached, source: 'cached' });
+  try {
+    const cacheKey = buildCacheKey('search_flights', { origin, destination, departure_date, return_date, cabin_class, max_stops });
+    const cached = await getCached(c.env, cacheKey);
+    if (cached) return c.json({ flights: cached, source: 'cached' });
 
-  const results = await searchFlightsRealtime({
-    origin: origin.toUpperCase(),
-    destination: destination.toUpperCase(),
-    departure_date,
-    return_date,
-    adults: adults ? parseInt(adults) : 1,
-    children: children ? parseInt(children) : 0,
-    infants: infants ? parseInt(infants) : 0,
-    cabin_class: (cabin_class as any) || 'economy',
-    max_stops: max_stops ? parseInt(max_stops) : undefined,
-    currency: currency || 'usd',
-  }, c.env);
+    const results = await searchFlightsRealtime({
+      origin: origin.toUpperCase(),
+      destination: destination.toUpperCase(),
+      departure_date,
+      return_date,
+      adults: adults ? parseInt(adults) : 1,
+      children: children ? parseInt(children) : 0,
+      infants: infants ? parseInt(infants) : 0,
+      cabin_class: (cabin_class as any) || 'economy',
+      max_stops: max_stops ? parseInt(max_stops) : undefined,
+      currency: currency || 'usd',
+    }, c.env);
 
-  if (results.length > 0) await setCache(c.env, cacheKey, results, 300);
-  return c.json({ flights: results, count: results.length });
+    if (results.length > 0) await setCache(c.env, cacheKey, results, 300);
+    return c.json({ flights: results, count: results.length });
+  } catch (err: any) {
+    return c.json({ error: 'Flight search failed', details: err.message }, 500);
+  }
 });
 
 app.get('/api/flights/cheapest', rateLimitMiddleware, async (c) => {
   const { origin, destination, month } = c.req.query();
   if (!origin || !destination) return c.json({ error: 'Missing: origin, destination' }, 400);
 
-  const cacheKey = buildCacheKey('cheapest_dates', { origin, destination, month });
-  const cached = await getCached(c.env, cacheKey);
-  if (cached) return c.json({ dates: cached, source: 'cached' });
+  try {
+    const cacheKey = buildCacheKey('cheapest_dates', { origin, destination, month });
+    const cached = await getCached(c.env, cacheKey);
+    if (cached) return c.json({ dates: cached, source: 'cached' });
 
-  const results = await searchCheapestDates(origin.toUpperCase(), destination.toUpperCase(), month, c.env);
-  if (results.length > 0) await setCache(c.env, cacheKey, results, 600);
-  return c.json({ cheapest_dates: results, count: results.length });
+    const results = await searchCheapestDates(origin.toUpperCase(), destination.toUpperCase(), month, c.env);
+    if (results.length > 0) await setCache(c.env, cacheKey, results, 600);
+    return c.json({ cheapest_dates: results, count: results.length });
+  } catch (err: any) {
+    return c.json({ error: 'Cheapest dates search failed', details: err.message }, 500);
+  }
 });
 
 app.get('/api/flights/calendar', rateLimitMiddleware, async (c) => {
   const { origin, destination, month } = c.req.query();
   if (!origin || !destination || !month) return c.json({ error: 'Missing: origin, destination, month' }, 400);
 
-  const cacheKey = buildCacheKey('price_calendar', { origin, destination, month });
-  const cached = await getCached(c.env, cacheKey);
-  if (cached) return c.json({ calendar: cached, source: 'cached' });
+  try {
+    const cacheKey = buildCacheKey('price_calendar', { origin, destination, month });
+    const cached = await getCached(c.env, cacheKey);
+    if (cached) return c.json({ calendar: cached, source: 'cached' });
 
-  const results = await getPriceCalendar(origin.toUpperCase(), destination.toUpperCase(), month, c.env);
-  if (results.length > 0) await setCache(c.env, cacheKey, results, 600);
-  return c.json({ calendar: results, count: results.length });
+    const results = await getPriceCalendar(origin.toUpperCase(), destination.toUpperCase(), month, c.env);
+    if (results.length > 0) await setCache(c.env, cacheKey, results, 600);
+    return c.json({ calendar: results, count: results.length });
+  } catch (err: any) {
+    return c.json({ error: 'Price calendar failed', details: err.message }, 500);
+  }
 });
 
 app.get('/api/flights/booking-link', async (c) => {
@@ -227,27 +239,42 @@ app.get('/gpt-actions.json', (c) => {
   });
 });
 
-// MCP endpoint — handled by Durable Object
-app.all('/mcp', async (c) => {
-  const url = new URL(c.req.url);
-  // Route to the MCP Durable Object
-  const id = c.env.MCP_SERVER.idFromName('default');
-  const stub = c.env.MCP_SERVER.get(id);
-  return stub.fetch(c.req.raw);
-});
-
-app.all('/mcp/message', async (c) => {
-  const id = c.env.MCP_SERVER.idFromName('default');
-  const stub = c.env.MCP_SERVER.get(id);
-  return stub.fetch(c.req.raw);
-});
-
-app.all('/sse', async (c) => {
-  const id = c.env.MCP_SERVER.idFromName('default');
-  const stub = c.env.MCP_SERVER.get(id);
-  return stub.fetch(c.req.raw);
-});
-
 export { ValorTravelMCP };
 
-export default app;
+// Use McpAgent.serve() to handle /mcp and /sse routes via DO
+const mcpHandler = ValorTravelMCP.serve('/mcp', {
+  binding: 'MCP_SERVER',
+  corsOptions: {
+    origin: '*',
+    headers: 'Content-Type, mcp-session-id',
+    exposeHeaders: 'mcp-session-id',
+  },
+});
+
+const sseHandler = ValorTravelMCP.serveSSE('/sse', {
+  binding: 'MCP_SERVER',
+  corsOptions: {
+    origin: '*',
+    headers: 'Content-Type, mcp-session-id',
+    exposeHeaders: 'mcp-session-id',
+  },
+});
+
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+
+    // Route MCP requests to the DO handler
+    if (url.pathname === '/mcp' || url.pathname.startsWith('/mcp/')) {
+      return mcpHandler.fetch(request, env, ctx);
+    }
+
+    // Route SSE requests
+    if (url.pathname === '/sse' || url.pathname.startsWith('/sse/')) {
+      return sseHandler.fetch(request, env, ctx);
+    }
+
+    // Everything else goes to Hono
+    return app.fetch(request, env, ctx);
+  },
+};

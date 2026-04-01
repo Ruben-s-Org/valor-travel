@@ -10,11 +10,11 @@ enabled = true
 [[d1_databases]]
 binding = "DB"
 database_name = "valor-travel-db"
-database_id = "" # Fill after: wrangler d1 create valor-travel-db
+database_id = "ddcb1a3a-dc83-4f49-8ff6-5dab8ebedef4"
 
 [[kv_namespaces]]
 binding = "CACHE"
-id = "" # Fill after: wrangler kv namespace create CACHE
+id = "33df4d74e34d4298b5958db7e4dd3ba0"
 
 [durable_objects]
 bindings = [
@@ -23,7 +23,7 @@ bindings = [
 
 [[migrations]]
 tag = "v1"
-new_classes = ["ValorTravelMCP"]
+new_sqlite_classes = ["ValorTravelMCP"]
 
 [vars]
 AFFILIATE_MARKER = "395498"
