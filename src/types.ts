@@ -41,6 +41,7 @@ export interface FlightResult {
   };
   cabin_class: string;
   booking_url: string;
+  booking_agent?: string;
   expires_at?: string;
 }
 
@@ -52,6 +53,8 @@ export interface CheapestDateResult {
   airline: string;
   flight_number?: string;
   stops: number;
+  duration_minutes?: number;
+  booking_agent?: string;
   booking_url: string;
 }
 
@@ -61,6 +64,7 @@ export interface PriceCalendarEntry {
   currency: string;
   airline?: string;
   direct?: boolean;
+  booking_agent?: string;
   booking_url: string;
 }
 
@@ -85,4 +89,11 @@ export interface DataAPIPriceEntry {
   return_at?: string;
   transfers: number;
   expires_at: string;
+  link: string;
+  gate: string;
+  duration: number;
+  duration_to: number;
+  duration_back: number;
+  origin_airport: string;
+  destination_airport: string;
 }
