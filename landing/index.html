@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Valor Travel — The No-Auth Travel MCP for AI Agents</title>
+    <meta name="description" content="The simplest travel MCP server for AI agents. Real-time flight search, price calendars, and booking links. No API key needed. Mount in Claude, ChatGPT, or any agent in seconds." />
+    <meta name="keywords" content="MCP server, travel API, flight search, AI agent tools, Claude tools, ChatGPT plugins, Aviasales, cheap flights" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Valor Travel — Travel MCP for AI Agents" />
+    <meta property="og:description" content="Real-time flights, price calendars, booking links. No auth. Mount in any AI agent in seconds." />
+    <meta property="og:url" content="https://valorflights.com" />
+    <meta property="og:site_name" content="Valor Travel" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Valor Travel — Travel MCP for AI Agents" />
+    <meta name="twitter:description" content="The simplest no-auth travel MCP. Search flights, find cheap dates, get booking links." />
+
+    <!-- Theme -->
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+
+    <!-- JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Valor Travel MCP",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Cloud",
+      "description": "The simplest no-auth travel MCP server for AI agents. Real-time flight search, price calendars, and affiliate booking links.",
+      "url": "https://valorflights.com",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free tier: 500 requests/day"
+      },
+      "featureList": [
+        "Real-time flight search",
+        "Price calendar",
+        "Cheapest date finder",
+        "Direct booking links",
+        "No authentication required",
+        "MCP protocol support"
+      ]
+    }
+    </script>
+  </head>
+  <body class="min-h-screen bg-background text-foreground antialiased">
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

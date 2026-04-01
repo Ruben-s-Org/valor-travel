@@ -1,0 +1,30 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "valor-travel-mcp"
+main = "src/index.ts"
+compatibility_date = "2025-03-26"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "valor-travel-db"
+database_id = "" # Fill after: wrangler d1 create valor-travel-db
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "" # Fill after: wrangler kv namespace create CACHE
+
+[durable_objects]
+bindings = [
+  { name = "MCP_SERVER", class_name = "ValorTravelMCP" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ValorTravelMCP"]
+
+[vars]
+AFFILIATE_MARKER = "395498"
+BASE_URL = "https://valor-travel-mcp.ruben-s-org.workers.dev"
