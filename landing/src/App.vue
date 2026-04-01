@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 
-const MCP_URL = 'https://valor-travel-mcp.rubencharlestouitou.workers.dev/mcp'
+const MCP_URL = 'https://mcp.valorflights.com/mcp'
 const copied = ref<string | null>(null)
 
 function copyToClipboard(text: string, id: string) {
@@ -203,10 +203,10 @@ const faqs = [
             </div>
             <h4 class="mb-2 mt-6 font-medium">REST API</h4>
             <div class="relative">
-              <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm"><code>curl "https://valor-travel-mcp.rubencharlestouitou.workers.dev/api/flights/search?origin=JFK&destination=LHR&departure_date=2025-07-15"</code></pre>
+              <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm"><code>curl "https://mcp.valorflights.com/api/flights/search?origin=JFK&destination=LHR&departure_date=2025-07-15"</code></pre>
               <button
                 class="absolute right-3 top-3 rounded bg-background/80 px-2 py-1 text-xs hover:bg-background cursor-pointer"
-                @click="copyToClipboard(`curl 'https://valor-travel-mcp.rubencharlestouitou.workers.dev/api/flights/search?origin=JFK&destination=LHR&departure_date=2025-07-15'`, 'curl')"
+                @click="copyToClipboard(`curl 'https://mcp.valorflights.com/api/flights/search?origin=JFK&destination=LHR&departure_date=2025-07-15'`, 'curl')"
               >{{ copied === 'curl' ? 'Copied!' : 'Copy' }}</button>
             </div>
           </CardContent>
@@ -422,8 +422,8 @@ const faqs = [
           <span class="text-sm text-muted-foreground">The no-auth travel MCP for AI agents</span>
         </div>
         <div class="flex gap-6 text-sm text-muted-foreground">
-          <a href="https://valor-travel-mcp.rubencharlestouitou.workers.dev/openapi.json" class="hover:text-foreground transition-colors">OpenAPI Spec</a>
-          <a href="https://valor-travel-mcp.rubencharlestouitou.workers.dev/mcp-manifest.json" class="hover:text-foreground transition-colors">MCP Manifest</a>
+          <a href="https://mcp.valorflights.com/openapi.json" class="hover:text-foreground transition-colors">OpenAPI Spec</a>
+          <a href="https://mcp.valorflights.com/mcp-manifest.json" class="hover:text-foreground transition-colors">MCP Manifest</a>
           <a href="https://github.com/Ruben-s-Org/valor-travel" class="hover:text-foreground transition-colors">GitHub</a>
         </div>
       </div>

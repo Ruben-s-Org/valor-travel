@@ -3,6 +3,10 @@ name = "valor-travel-mcp"
 main = "src/index.ts"
 compatibility_date = "2025-03-26"
 compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+routes = [
+  { pattern = "mcp.valorflights.com", custom_domain = true }
+]
 
 [observability]
 enabled = true
@@ -27,4 +31,4 @@ new_sqlite_classes = ["ValorTravelMCP"]
 
 [vars]
 AFFILIATE_MARKER = "395498"
-BASE_URL = "https://valor-travel-mcp.ruben-s-org.workers.dev"
+BASE_URL = "https://mcp.valorflights.com"
