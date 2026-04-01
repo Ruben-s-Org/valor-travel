@@ -5,7 +5,7 @@ const DATA_API_BASE = 'https://api.travelpayouts.com/aviasales';
 function buildBookingUrl(origin: string, dest: string, date: string, returnDate?: string): string {
   const params = new URLSearchParams({ from: origin, to: dest, date: date.split('T')[0] });
   if (returnDate) params.set('return', returnDate.split('T')[0]);
-  return `https://search.valorflights.com/flights?${params}`;
+  return `https://valorflights.com?${params}`;
 }
 
 export async function searchFlightsRealtime(params: FlightSearchParams, env: Env): Promise<FlightResult[]> {
