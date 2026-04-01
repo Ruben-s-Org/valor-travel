@@ -38,7 +38,7 @@ app.get('/openapi.json', (c) => {
       description: 'Real-time flight search, price calendars, and booking links. No authentication required.',
       contact: { name: 'Valor Travel', url: 'https://valorflights.com' },
     },
-    servers: [{ url: 'https://valor-travel-mcp.ruben-s-org.workers.dev', description: 'Production' }],
+    servers: [{ url: 'https://valor-travel-mcp.rubencharlestouitou.workers.dev', description: 'Production' }],
     paths: {
       '/api/flights/search': {
         get: {
@@ -234,7 +234,7 @@ app.get('/gpt-actions.json', (c) => {
     auth: { type: 'none' },
     api: {
       type: 'openapi',
-      url: 'https://valor-travel-mcp.ruben-s-org.workers.dev/openapi.json',
+      url: 'https://valor-travel-mcp.rubencharlestouitou.workers.dev/openapi.json',
     },
   });
 });

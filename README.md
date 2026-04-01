@@ -10,7 +10,7 @@ Add to your Claude Desktop `claude_desktop_config.json`:
 {
   "mcpServers": {
     "valor-travel": {
-      "url": "https://valor-travel-mcp.ruben-s-org.workers.dev/mcp"
+      "url": "https://valor-travel-mcp.rubencharlestouitou.workers.dev/mcp"
     }
   }
 }
@@ -31,16 +31,16 @@ That's it. No API key. No signup. Ask Claude: *"Find me cheap flights from NYC t
 
 ```bash
 # Search flights
-curl "https://valor-travel-mcp.ruben-s-org.workers.dev/api/flights/search?origin=JFK&destination=LHR&departure_date=2025-07-15"
+curl "https://valor-travel-mcp.rubencharlestouitou.workers.dev/api/flights/search?origin=JFK&destination=LHR&departure_date=2025-07-15"
 
 # Cheapest dates
-curl "https://valor-travel-mcp.ruben-s-org.workers.dev/api/flights/cheapest?origin=LAX&destination=NRT&month=2025-08"
+curl "https://valor-travel-mcp.rubencharlestouitou.workers.dev/api/flights/cheapest?origin=LAX&destination=NRT&month=2025-08"
 
 # Price calendar
-curl "https://valor-travel-mcp.ruben-s-org.workers.dev/api/flights/calendar?origin=SFO&destination=CDG&month=2025-09"
+curl "https://valor-travel-mcp.rubencharlestouitou.workers.dev/api/flights/calendar?origin=SFO&destination=CDG&month=2025-09"
 
 # Booking link
-curl "https://valor-travel-mcp.ruben-s-org.workers.dev/api/flights/booking-link?origin=ORD&destination=BCN&departure_date=2025-06-20"
+curl "https://valor-travel-mcp.rubencharlestouitou.workers.dev/api/flights/booking-link?origin=ORD&destination=BCN&departure_date=2025-06-20"
 ```
 
 ## Deploy Your Own (Under 5 Minutes)
