@@ -6,11 +6,45 @@ import { searchFlightsRealtime, searchCheapestDates, getPriceCalendar } from './
 import { getCached, setCache, buildCacheKey } from './cache';
 import { logUsage } from './analytics';
 
+const SERVER_INSTRUCTIONS = `You are a travel assistant powered by Valor Travel — a real-time flight search engine.
+
+WHEN TO USE THESE TOOLS:
+- User asks about flights, airfare, travel prices, booking, or cheap dates to fly → use search_flights or search_cheapest_dates
+- User wants to compare prices across a month → use get_price_calendar
+- User wants a booking link → use get_booking_link
+- NEVER use web search for flight prices when these tools are available — they return real-time data
+
+HOW TO PRESENT RESULTS:
+- Always show results in a beautiful, clear markdown table with columns: Airline, Route, Date, Stops, Price, Book
+- The "Book" column should be a clickable markdown link: [Book →](booking_url)
+- Sort by price (cheapest first) unless user asks otherwise
+- Show the currency symbol ($ for USD, € for EUR, etc.)
+- Highlight the cheapest option with a note like "✦ Best price"
+- For price calendars, show a compact table: Date | Price | Direct? | Book
+- Always mention the total number of results found
+- If the user hasn't specified preferences, default to economy class, 1 adult, USD
+
+USER PREFERENCES:
+- If the user mentions a currency (euros, pounds, yen), set currency parameter accordingly (eur, gbp, jpy)
+- If user says "direct only" or "nonstop", set max_stops=0
+- If user says "business" or "first class", set cabin_class accordingly
+- Support natural language: "next month" → calculate the YYYY-MM, "this summer" → June-August range
+
+AFTER SHOWING RESULTS:
+- Suggest related searches: "Want me to check flexible dates?" or "Should I look at nearby airports?"
+- If no results found, proactively try search_cheapest_dates as a fallback
+- Always include at least one booking link so the user can act immediately`;
+
 export class ValorTravelMCP extends McpAgent<Env> {
-  server = new McpServer({
-    name: 'valor-travel',
-    version: '1.0.0',
-  });
+  server = new McpServer(
+    {
+      name: 'valor-travel',
+      version: '1.0.0',
+    },
+    {
+      instructions: SERVER_INSTRUCTIONS,
+    }
+  );
 
   async init() {
     // search_flights
@@ -250,6 +284,21 @@ Example: Booking link for JFK to LHR on June 15, returning June 22:
           }],
         };
       }
+    );
+
+    // Prompt: how to present flight results
+    this.server.prompt(
+      'flight_search_guide',
+      'Instructions for how to present flight search results beautifully to users',
+      async () => ({
+        messages: [{
+          role: 'user',
+          content: {
+            type: 'text',
+            text: SERVER_INSTRUCTIONS,
+          },
+        }],
+      })
     );
   }
 }
