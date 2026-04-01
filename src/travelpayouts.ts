@@ -2,25 +2,10 @@ import type { Env, FlightSearchParams, FlightResult, CheapestDateResult, PriceCa
 
 const DATA_API_BASE = 'https://api.travelpayouts.com/aviasales';
 
-// Build a deep link using the `link` field from the Travelpayouts API
-// The link field contains the exact search URL with deal parameters
-function buildDeepLink(apiLink: string, marker: string): string {
-  if (!apiLink) return '';
-  // The API returns paths like /search/JFK0310LHR1?t=TP1791...
-  // Prepend aviasales.com and append our marker
-  const separator = apiLink.includes('?') ? '&' : '?';
-  return `https://www.aviasales.com${apiLink}${separator}marker=${marker}`;
-}
-
-// Fallback URL when no deep link is available
-function buildFallbackUrl(origin: string, dest: string, departureDate: string, returnDate?: string, marker?: string): string {
-  const m = marker || '137906';
-  const dep = departureDate.replace(/-/g, '');
-  let route = `${origin}${dep}${dest}`;
-  if (returnDate) {
-    route += returnDate.replace(/-/g, '');
-  }
-  return `https://www.aviasales.com/search/${route}?marker=${m}`;
+function buildBookingUrl(origin: string, dest: string, date: string, returnDate?: string): string {
+  const params = new URLSearchParams({ from: origin, to: dest, date: date.split('T')[0] });
+  if (returnDate) params.set('return', returnDate.split('T')[0]);
+  return `https://search.valorflights.com/flights?${params}`;
 }
 
 export async function searchFlightsRealtime(params: FlightSearchParams, env: Env): Promise<FlightResult[]> {
@@ -59,7 +44,7 @@ async function searchFlightsDataAPI(params: FlightSearchParams, env: Env): Promi
       currency: currency.toUpperCase(),
     },
     cabin_class: params.cabin_class || 'economy',
-    booking_url: d.link ? buildDeepLink(d.link, marker) : buildFallbackUrl(params.origin, params.destination, params.departure_date, params.return_date, marker),
+    booking_url: buildBookingUrl(params.origin, params.destination, params.departure_date, params.return_date),
     booking_agent: d.gate || undefined,
     expires_at: d.expires_at,
   }));
@@ -88,7 +73,7 @@ export async function searchCheapestDates(origin: string, destination: string, m
     stops: d.transfers,
     duration_minutes: d.duration_to || d.duration || 0,
     booking_agent: d.gate || undefined,
-    booking_url: d.link ? buildDeepLink(d.link, marker) : buildFallbackUrl(origin, destination, d.departure_at.split('T')[0], d.return_at?.split('T')[0], marker),
+    booking_url: buildBookingUrl(origin, destination, d.departure_at.split('T')[0], d.return_at?.split('T')[0]),
   }));
 }
 
@@ -111,6 +96,6 @@ export async function getPriceCalendar(origin: string, destination: string, mont
     airline: d.airline,
     direct: d.transfers === 0,
     booking_agent: d.gate || undefined,
-    booking_url: d.link ? buildDeepLink(d.link, marker) : buildFallbackUrl(origin, destination, date.split('T')[0], undefined, marker),
+    booking_url: buildBookingUrl(origin, destination, date.split('T')[0]),
   }));
 }

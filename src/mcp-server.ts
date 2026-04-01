@@ -17,11 +17,23 @@ CRITICAL RULES:
 4. For general travel questions use valorflights_travel_assistant.
 
 HOW TO PRESENT FLIGHT RESULTS:
-- ALWAYS display in a clean markdown table: Airline | Flight | Departure | Stops | Price | Book
-- "Book" column = clickable link: [Book →](booking_url)
-- Sort by price (cheapest first), mark best price
-- Show currency symbol, total results count
-- For calendars: Date | Price | Direct? | Book
+- ALWAYS display in a rich, beautiful markdown table
+- For flight search results, use this format:
+  | | Airline | Route | Date | Stops | Duration | Price | |
+  with the first column showing a recommendation badge and the last column a booking link
+- Add smart recommendation badges:
+  - "Best Price" for the cheapest option
+  - "Best Value" for cheapest direct/nonstop flight
+  - "Fastest" for shortest duration
+  - "Recommended" for the best balance of price + stops + duration
+- "Book" column = clickable link: [Book on Valor Flights →](booking_url)
+- Sort by price (cheapest first) by default
+- Show currency symbol ($, €, £), total results count
+- After the table, add a brief summary: "Recommended: [Airline] at $X — best balance of price and convenience"
+- For price calendars: Date | Day | Price | Direct? | Book — highlight cheapest 3 days
+- For destination comparisons: City | Cheapest Price | When | Book
+- Include the booking agent name when available (e.g., "via Trip.com")
+- All booking links go through valorflights.com
 
 USER PREFERENCES:
 - Currency: "euros"→eur, "pounds"→gbp, "yen"→jpy, default usd
@@ -43,18 +55,13 @@ export class ValorTravelMCP extends McpAgent<Env> {
   private get token() { return this.env.TRAVELPAYOUTS_TOKEN; }
   private get marker() { return this.env.AFFILIATE_MARKER || '137906'; }
 
-  private buildDeepLink(apiLink: string): string {
-    if (!apiLink) return '';
-    const sep = apiLink.includes('?') ? '&' : '?';
-    return `https://www.aviasales.com${apiLink}${sep}marker=${this.marker}`;
+  private buildBookingUrl(origin: string, dest: string, date: string, returnDate?: string): string {
+    const params = new URLSearchParams({ from: origin, to: dest, date: date.split('T')[0] });
+    if (returnDate) params.set('return', returnDate.split('T')[0]);
+    return `https://search.valorflights.com/flights?${params}`;
   }
 
-  private buildFallbackUrl(origin: string, dest: string, date: string, returnDate?: string): string {
-    const dep = date.replace(/-/g, '');
-    let route = `${origin}${dep}${dest}`;
-    if (returnDate) route += returnDate.replace(/-/g, '');
-    return `https://www.aviasales.com/search/${route}?marker=${this.marker}`;
-  }
+
 
   private async tpFetch(path: string): Promise<any> {
     const sep = path.includes('?') ? '&' : '?';
@@ -169,7 +176,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
       },
       READ_ONLY,
       async (params: any) => {
-        const url = this.buildFallbackUrl(params.origin, params.destination, params.departure_date, params.return_date);
+        const url = this.buildBookingUrl(params.origin, params.destination, params.departure_date, params.return_date);
         return { content: [{ type: 'text' as const, text: JSON.stringify({ booking_url: url, route: `${params.origin} → ${params.destination}` }, null, 2) }] };
       }
     );
@@ -196,7 +203,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
         const results = (data.data || []).map((d: any) => ({
           airline: d.airline, flight: `${d.airline}${d.flight_number}`, departure: d.departure_at,
           duration_min: d.duration_to, price: d.price, currency: params.currency.toUpperCase(),
-          gate: d.gate, booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(params.origin, params.destination, d.departure_at.split('T')[0]),
+          gate: d.gate, booking_url: this.buildBookingUrl(params.origin, params.destination, d.departure_at.split('T')[0]),
         }));
         if (results.length > 0) await setCache(this.env, cacheKey, results, 600);
         return { content: [{ type: 'text' as const, text: JSON.stringify({ direct_flights: results, count: results.length, note: 'These are all nonstop flights.' }, null, 2) }] };
@@ -218,7 +225,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
         const results = (data.data || []).map((d: any) => ({
           airline: d.airline, flight: `${d.airline}${d.flight_number}`, departure: d.departure_at,
           stops: d.transfers, duration_min: d.duration_to, price: d.price, gate: d.gate,
-          booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(params.origin, params.destination, params.departure_date),
+          booking_url: this.buildBookingUrl(params.origin, params.destination, params.departure_date),
         }));
         return { content: [{ type: 'text' as const, text: JSON.stringify({ one_way_flights: results, count: results.length }, null, 2) }] };
       }
@@ -243,7 +250,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
         const results = (data.data || []).map((d: any) => ({
           date: d.depart_date, return_date: d.return_date, price: d.value, gate: d.gate,
           stops: d.number_of_changes, duration_min: d.duration, direct: d.number_of_changes === 0,
-          booking_url: this.buildFallbackUrl(params.origin, params.destination, d.depart_date, d.return_date || undefined),
+          booking_url: this.buildBookingUrl(params.origin, params.destination, d.depart_date, d.return_date || undefined),
         }));
         return { content: [{ type: 'text' as const, text: JSON.stringify({ month_matrix: results, count: results.length }, null, 2) }] };
       }
@@ -267,7 +274,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
           destination: d.destination, departure: d.depart_date, return: d.return_date,
           price: d.value, direct: d.number_of_changes === 0, stops: d.number_of_changes,
           duration_min: d.duration, gate: d.gate, found_at: d.found_at,
-          booking_url: this.buildFallbackUrl(params.origin, d.destination, d.depart_date, d.return_date || undefined),
+          booking_url: this.buildBookingUrl(params.origin, d.destination, d.depart_date, d.return_date || undefined),
         }));
         if (results.length > 0) await setCache(this.env, cacheKey, { deals: results, count: results.length }, 600);
         return { content: [{ type: 'text' as const, text: JSON.stringify({ deals: results, count: results.length, note: 'Latest deals sorted by price.' }, null, 2) }] };
@@ -319,7 +326,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
         for (const d of (data.data || [])) {
           if (!byAirline[d.airline] || d.price < byAirline[d.airline].price) {
             byAirline[d.airline] = { airline: d.airline, cheapest_price: d.price, flight: `${d.airline}${d.flight_number}`, stops: d.transfers, duration_min: d.duration_to, gate: d.gate,
-              booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(params.origin, params.destination, d.departure_at.split('T')[0]) };
+              booking_url: this.buildBookingUrl(params.origin, params.destination, d.departure_at.split('T')[0]) };
           }
         }
         const airlines = Object.values(byAirline).sort((a: any, b: any) => a.cheapest_price - b.cheapest_price);
@@ -344,7 +351,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
           const dep = new Date(d.departure_at); const ret = new Date(d.return_at);
           const days = Math.round((ret.getTime() - dep.getTime()) / 86400000);
           return { departure: d.departure_at, return: d.return_at, days, airline: d.airline, price: d.price, stops: d.transfers, gate: d.gate,
-            booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(params.origin, params.destination, d.departure_at.split('T')[0], d.return_at?.split('T')[0]) };
+            booking_url: this.buildBookingUrl(params.origin, params.destination, d.departure_at.split('T')[0], d.return_at?.split('T')[0]) };
         });
         return { content: [{ type: 'text' as const, text: JSON.stringify({ round_trips: results, count: results.length }, null, 2) }] };
       }
@@ -370,7 +377,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
           return days >= 2 && days <= 4 && (depDay === 4 || depDay === 5);
         }).map((d: any) => ({
           departure: d.departure_at, return: d.return_at, airline: d.airline, price: d.price, stops: d.transfers, gate: d.gate,
-          booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(params.origin, params.destination, d.departure_at.split('T')[0], d.return_at?.split('T')[0]),
+          booking_url: this.buildBookingUrl(params.origin, params.destination, d.departure_at.split('T')[0], d.return_at?.split('T')[0]),
         }));
         return { content: [{ type: 'text' as const, text: JSON.stringify({ weekend_getaways: weekendTrips, count: weekendTrips.length }, null, 2) }] };
       }
@@ -395,7 +402,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
         const data = await this.tpFetch(`/v1/city-directions?origin=${params.origin}&currency=${params.currency}`);
         const dests = Object.entries(data.data || {}).map(([code, d]: [string, any]) => ({
           destination: code, price: d.price, airline: d.airline, departure: d.departure_at, return: d.return_at, stops: d.transfers,
-          booking_url: this.buildFallbackUrl(params.origin, code, d.departure_at.split('T')[0], d.return_at?.split('T')[0]),
+          booking_url: this.buildBookingUrl(params.origin, code, d.departure_at.split('T')[0], d.return_at?.split('T')[0]),
         })).sort((a, b) => a.price - b.price);
         const result = { destinations: dests, count: dests.length, origin: params.origin };
         if (dests.length > 0) await setCache(this.env, cacheKey, result, 3600);
@@ -416,7 +423,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
         const results = (data.data || []).map((d: any) => ({
           destination: d.destination, price: d.value, departure: d.depart_date, return: d.return_date,
           direct: d.number_of_changes === 0, duration_min: d.duration, gate: d.gate,
-          booking_url: this.buildFallbackUrl(params.origin, d.destination, d.depart_date, d.return_date || undefined),
+          booking_url: this.buildBookingUrl(params.origin, d.destination, d.depart_date, d.return_date || undefined),
         })).sort((a: any, b: any) => a.price - b.price);
         return { content: [{ type: 'text' as const, text: JSON.stringify({ cheapest_destinations: results, count: results.length, origin: params.origin }, null, 2) }] };
       }
@@ -454,7 +461,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
         let results = (data.data || []).map((d: any) => ({
           destination: d.destination, price: d.value, departure: d.depart_date, return: d.return_date,
           direct: d.number_of_changes === 0, gate: d.gate,
-          booking_url: this.buildFallbackUrl(params.origin, d.destination, d.depart_date, d.return_date || undefined),
+          booking_url: this.buildBookingUrl(params.origin, d.destination, d.depart_date, d.return_date || undefined),
         }));
         if (params.budget_max) results = results.filter((r: any) => r.price <= params.budget_max);
         return { content: [{ type: 'text' as const, text: JSON.stringify({ explore: results.sort((a: any, b: any) => a.price - b.price), count: results.length, origin: params.origin, budget: params.budget_max || 'unlimited' }, null, 2) }] };
@@ -485,7 +492,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
           destination: d.destination || d.destination_airport || params.destination,
           price: d.price || d.value, departure: d.departure_at || d.depart_date, return: d.return_at || d.return_date,
           airline: d.airline, stops: d.transfers ?? d.number_of_changes, gate: d.gate,
-          booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(params.origin, d.destination || d.destination_airport || params.destination, (d.departure_at || d.depart_date).split('T')[0]),
+          booking_url: this.buildBookingUrl(params.origin, d.destination || d.destination_airport || params.destination, (d.departure_at || d.depart_date).split('T')[0]),
         }));
         return { content: [{ type: 'text' as const, text: JSON.stringify({ flights_in_budget: results, count: results.length, budget: `${params.currency.toUpperCase()} ${params.max_price}` }, null, 2) }] };
       }
@@ -510,13 +517,13 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
           const data = await this.tpFetch(`/aviasales/v3/prices_for_dates?origin=${params.origin}&destination=${params.destination}&departure_at=${depFrom}&currency=${params.currency}&sorting=price&limit=15`);
           results = (data.data || []).map((d: any) => ({
             destination: params.destination, departure: d.departure_at, price: d.price, airline: d.airline, stops: d.transfers, gate: d.gate,
-            booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(params.origin, params.destination, d.departure_at.split('T')[0]),
+            booking_url: this.buildBookingUrl(params.origin, params.destination, d.departure_at.split('T')[0]),
           }));
         } else {
           const data = await this.tpFetch(`/v2/prices/latest?origin=${params.origin}&currency=${params.currency}&limit=30&period_type=day&beginning_of_period=${depFrom}&show_to_affiliates=true`);
           results = (data.data || []).filter((d: any) => d.depart_date <= depTo).map((d: any) => ({
             destination: d.destination, departure: d.depart_date, price: d.value, direct: d.number_of_changes === 0, gate: d.gate,
-            booking_url: this.buildFallbackUrl(params.origin, d.destination, d.depart_date),
+            booking_url: this.buildBookingUrl(params.origin, d.destination, d.depart_date),
           }));
         }
         return { content: [{ type: 'text' as const, text: JSON.stringify({ last_minute_deals: results.sort((a: any, b: any) => a.price - b.price), count: results.length, departing_before: depTo }, null, 2) }] };
@@ -548,7 +555,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
                 destination: d.destination || d.destination_airport || params.destination, month: m,
                 departure: d.departure_at || d.depart_date, price: d.price || d.value,
                 airline: d.airline, stops: d.transfers ?? d.number_of_changes, gate: d.gate,
-                booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(params.origin, d.destination || d.destination_airport || params.destination, (d.departure_at || d.depart_date).split('T')[0]),
+                booking_url: this.buildBookingUrl(params.origin, d.destination || d.destination_airport || params.destination, (d.departure_at || d.depart_date).split('T')[0]),
               });
             }
           } catch { /* skip */ }
@@ -582,7 +589,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
                 destination: d.destination || d.destination_airport || params.destination, month: m,
                 departure: d.departure_at || d.depart_date, price: d.price || d.value,
                 airline: d.airline, gate: d.gate,
-                booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(params.origin, d.destination || d.destination_airport || params.destination, (d.departure_at || d.depart_date).split('T')[0]),
+                booking_url: this.buildBookingUrl(params.origin, d.destination || d.destination_airport || params.destination, (d.departure_at || d.depart_date).split('T')[0]),
               });
             }
           } catch { /* skip */ }
@@ -733,7 +740,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
               allDeals.push({
                 origin: ap.code, origin_name: ap.name, destination: d.destination || d.destination_airport || params.destination,
                 price: d.price || d.value, departure: d.departure_at || d.depart_date, airline: d.airline,
-                booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(ap.code, d.destination || params.destination, (d.departure_at || d.depart_date).split('T')[0]),
+                booking_url: this.buildBookingUrl(ap.code, d.destination || params.destination, (d.departure_at || d.depart_date).split('T')[0]),
               });
             }
           } catch { /* skip */ }
@@ -766,7 +773,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
           airline: d.airline, departure: d.departure_at, return: d.return_at,
           price_per_person: d.price, total_price: d.price * params.travelers,
           stops: d.transfers, duration_min: d.duration_to, gate: d.gate,
-          booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(params.origin, params.destination, params.departure_date, params.return_date),
+          booking_url: this.buildBookingUrl(params.origin, params.destination, params.departure_date, params.return_date),
         }));
         const days = Math.round((new Date(params.return_date).getTime() - new Date(params.departure_date).getTime()) / 86400000);
         return { content: [{ type: 'text' as const, text: JSON.stringify({
@@ -799,7 +806,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
               leg: `${stop.from} → ${stop.to}`, date: stop.date,
               cheapest_price: best?.price || 'N/A', airline: best?.airline || 'N/A',
               stops: best?.transfers, gate: best?.gate,
-              booking_url: best?.link ? this.buildDeepLink(best.link) : this.buildFallbackUrl(stop.from, stop.to, stop.date),
+              booking_url: this.buildBookingUrl(stop.from, stop.to, stop.date),
             });
             if (best?.price) totalPrice += best.price;
           } catch { legs.push({ leg: `${stop.from} → ${stop.to}`, date: stop.date, error: 'No data' }); }
@@ -830,7 +837,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
             if (data.data?.[0]) {
               const f = data.data[0];
               results.push({ date: dateStr, price: f.price, airline: f.airline, stops: f.transfers, gate: f.gate,
-                booking_url: f.link ? this.buildDeepLink(f.link) : this.buildFallbackUrl(params.origin, params.destination, dateStr),
+                booking_url: this.buildBookingUrl(params.origin, params.destination, dateStr),
               });
             }
           } catch { /* skip */ }
@@ -857,7 +864,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
         const options = (data.data || []).map((d: any) => ({
           airline: d.airline, departure: d.departure_at, price_per_person: d.price,
           total_group_price: d.price * params.group_size, stops: d.transfers, gate: d.gate,
-          booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(params.origin, params.destination, params.departure_date, params.return_date),
+          booking_url: this.buildBookingUrl(params.origin, params.destination, params.departure_date, params.return_date),
         }));
         return { content: [{ type: 'text' as const, text: JSON.stringify({ group_size: params.group_size, flight_options: options, cheapest_total: options[0] ? options[0].total_group_price : 'N/A' }, null, 2) }] };
       }
@@ -881,7 +888,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
         const results = (data.data || []).map((d: any) => ({
           airline: d.airline, departure: d.departure_at, economy_price: d.price, estimated_premium_price: Math.round(d.price * (params.class === 'first' ? 4.5 : 2.8)),
           stops: d.transfers, gate: d.gate, note: `Economy price shown. ${params.class} class typically ${params.class === 'first' ? '4-5x' : '2.5-3x'} economy.`,
-          booking_url: this.buildFallbackUrl(params.origin, params.destination, params.departure_date, params.return_date),
+          booking_url: this.buildBookingUrl(params.origin, params.destination, params.departure_date, params.return_date),
         }));
         return { content: [{ type: 'text' as const, text: JSON.stringify({ class: params.class, options: results, tip: 'Click booking link and select cabin class on the booking page.' }, null, 2) }] };
       }
@@ -904,7 +911,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
           return hour >= 21 || hour <= 5;
         }).map((d: any) => ({
           departure: d.departure_at, airline: d.airline, price: d.price, stops: d.transfers, gate: d.gate,
-          booking_url: d.link ? this.buildDeepLink(d.link) : this.buildFallbackUrl(params.origin, params.destination, d.departure_at.split('T')[0]),
+          booking_url: this.buildBookingUrl(params.origin, params.destination, d.departure_at.split('T')[0]),
         }));
         return { content: [{ type: 'text' as const, text: JSON.stringify({ red_eye_flights: redEyes, count: redEyes.length }, null, 2) }] };
       }
@@ -932,7 +939,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
             const best = data.data?.[0];
             comparison.push({
               airport: ap, cheapest_price: best?.price || null, airline: best?.airline, stops: best?.transfers, gate: best?.gate,
-              booking_url: best?.link ? this.buildDeepLink(best.link) : this.buildFallbackUrl(ap, params.destination, params.departure_date),
+              booking_url: this.buildBookingUrl(ap, params.destination, params.departure_date),
             });
           } catch { comparison.push({ airport: ap, cheapest_price: null, error: 'No data' }); }
         }
@@ -960,7 +967,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
             comparison.push({
               date, price: best?.price || null, airline: best?.airline, stops: best?.transfers,
               day_of_week: new Date(date).toLocaleDateString('en-US', { weekday: 'long' }),
-              booking_url: best?.link ? this.buildDeepLink(best.link) : this.buildFallbackUrl(params.origin, params.destination, date),
+              booking_url: this.buildBookingUrl(params.origin, params.destination, date),
             });
           } catch { comparison.push({ date, price: null }); }
         }
@@ -990,7 +997,7 @@ Use IATA codes (JFK, LAX, LHR, NRT, CDG, SFO, ORD, MIA, ATL, DFW, etc.) and YYYY
             const best = data.data?.[0];
             comparison.push({
               destination: dest, cheapest_price: best?.price || null, airline: best?.airline, departure: best?.departure_at, stops: best?.transfers,
-              booking_url: best?.link ? this.buildDeepLink(best.link) : this.buildFallbackUrl(params.origin, dest, (best?.departure_at || params.departure_date || '2026-06-01').split('T')[0]),
+              booking_url: this.buildBookingUrl(params.origin, dest, (best?.departure_at || params.departure_date || '2026-06-01').split('T')[0]),
             });
           } catch { comparison.push({ destination: dest, cheapest_price: null }); }
         }
